@@ -9,7 +9,6 @@ Modified on Tue May 28 16:47:00 2019
 
 import numpy as np
 from FuzzyRule import FuzzyRule
-from Utils import *
 
 class KnowledgeBase:
     """
@@ -36,27 +35,21 @@ class KnowledgeBase:
     
     """
     
-    def __init__(self,X,y,FI_X,dataBase,RW_tsh=0,RW_measure='RW_PCF'):
+    def __init__(self,X,y,X_Mask,dataBase,RW_tsh=0,RW_measure='RW_PCF'):
         self.X = X
-        self.FI_X = FI_X
+        self.X_Mask = X_Mask
         self.y = y
         self.RW_tsh=RW_tsh
         self.RW_measure=RW_measure
         self.dataBase = dataBase
         self.matchingDegrees = np.zeros([1,1],dtype=float)
-        self.fianl_ruleBase = list()
-        self.classLabels = 0
-        self.init_parameters()
-        self.NF=0
-
-    def init_parameters(self):
-        self.X_Mask = list()
+        #print(self.matchingDegrees)
         self.ruleBase = list()
-        self.totalRL = 0
-        self.ARL = 0
-        self.NR = 0
-        self.rules_count = 0
-
+        self.totalRL=0
+        self.ARL=0
+        self.NR=0
+        self.classLabels = 0
+        self.rules_count =  0
     def includeInitialRules(self, ruleBaseTmp):
         self.classLabels = np.unique(self.y)
         self.rules_count = np.zeros(len(self.classLabels))
@@ -145,19 +138,11 @@ class KnowledgeBase:
         return classIndex, ruleWeight,supp
 
         
-    def generation(self,topFe):
+    def generation(self):
         """
             The whole Rule Base generation by grid covering
         """
         ruleBaseTmp = dict() #initial hash table to avoid repetitions  : {ant1: {c1:n1,c2:n2,..}, ant2: {c1:n1,c2:n2,..},...}
-
-        self.X_Mask =  getMask(self.X,self.FI_X,topFe)
-        NF=((self.X_Mask==1).sum(axis=0)!=0).sum()
-        print('Number of top Features: ', topFe)
-        print('Number of Contributing Features: ', NF)
-        if self.NF<NF:
-            self.NF=NF
-
 
         print("Rule Generation")
         #Get all possible pairs of <antecedents,consequents>
@@ -209,7 +194,7 @@ class KnowledgeBase:
             elif self.RW_measure == 'RW_non_fuzzy_conf':
                 classLabel, ruleWeight,supp = self.computeRuleWeight_NonFuzzyConf(rule, classLabels,classLabels_Info, i)  #return non fuzzy conf as ruleWeight
 
-            if ruleWeight > 0:
+            if ruleWeight > self.RW_tsh:
                 new_rule=FuzzyRule(rule,classLabel,ruleWeight,supp)
                 self.rules_count[classLabel]+=1
                 self.ruleBase.append(new_rule)
@@ -230,44 +215,8 @@ class KnowledgeBase:
         for i in self.classLabels:
             print('# Rules in class ',i,': ', self.rules_count[i])
         print('--------------------------------')
-        return self.ruleBase
 
-    def generation_variantLenght(self,topF):
-        # generatinf rules with different lenght i.e., 1,2, ... topF
-        for i in range(topF):
-            RB_new= self.generation(i + 1)
-            self.fianl_ruleBase = self.fianl_ruleBase + RB_new
-            self.init_parameters()
-
-        #***************
-        self.prune()
-        # ***************
-
-        RWs =  [i.ruleWeight for i in self.fianl_ruleBase]
-        RLs=   [i.getLenght() for i in self.fianl_ruleBase]
-        print('**********************************Final Report:')
-        print('Number of Contributing Features: ', self.NF)
-        self.NR=len(self.fianl_ruleBase)
-        print("Final Rule Base size : "+str(self.NR))
-        self.totalRL=sum(RLs)
-        self.ARL=self.totalRL/len(self.fianl_ruleBase)
-        print("Average Rule lenght: "+str(self.ARL))
-        print('--------------------------------')
-        print('Min RW:', min(RWs), '\nMax RW:', max(RWs))
-        # for i in self.classLabels:
-        #     print('# Rules in class ',i,': ', self.rules_count[i])
-        print('--------------------------------')
-
-
-
-    def prune(self):
-       updated_RB=list()
-       for  rule in self.fianl_ruleBase:
-           if rule.ruleWeight > self.RW_tsh:
-               updated_RB.append(rule)
-       self.fianl_ruleBase=updated_RB
-
-
+        
     def WR(self,example):
         """
             Winning rule inference
@@ -276,7 +225,7 @@ class KnowledgeBase:
             determines the class output
         """
         class_degrees = np.ones(len(self.classLabels))*-1000   # we must not have class -1000 in actual labels
-        for fuzzyRule in self.fianl_ruleBase:
+        for fuzzyRule in self.ruleBase:
             degree = self.dataBase.computeMatchingDegree2(fuzzyRule,example)
             degree *= fuzzyRule.getRW()
             class_label = fuzzyRule.getClassLabel()
@@ -292,7 +241,7 @@ class KnowledgeBase:
             All rules take course in the decision of the class label
         """
         classDegrees = np.zeros(len(self.classLabels))
-        for fuzzyRule in self.fianl_ruleBase:
+        for fuzzyRule in self.ruleBase:
             degree = self.dataBase.computeMatchingDegree2(fuzzyRule,example)
             degree *= fuzzyRule.getRW()
             classDegrees[fuzzyRule.getClassLabel()] += degree
