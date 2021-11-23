@@ -3,12 +3,11 @@
 """
 Created on Wed May  8 12:38:34 2019
 Last modified on Thu May 31 12:05:00 2019
-
 @author: Alberto Fernandez - University of Granada - (alberto@decsai.ugr.es)
 """
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import accuracy_score,roc_curve, auc
-from sklearn import datasets 
+from sklearn import datasets
 
 from ChiRWClassifier import ChiRWClassifier
 from Utils import *
@@ -77,8 +76,8 @@ def runFRE(X_tr,y_tr,X_tst,y_tst,FI_X,y_nn,topF,prunning_ths,RW_measure):
 
 if __name__ == '__main__':
   # dataset_name='MB-GE-ER'
-  dataset_name='data_myron'
-  # dataset_name='breast_cancer'
+  # dataset_name='data_myron'
+  dataset_name='breast_cancer'
   # dataset_name = 'xor'
   # dataset_name='MAGIC'
   # dataset_name='LetterRecognitionComplete'
@@ -90,5 +89,4 @@ if __name__ == '__main__':
   print(X_tst.shape)
   print(FI_X.shape)
 
-  runFRE(X_tr,y_tr,X_tst,y_tst,FI_X,y_nn,topF=3,prunning_ths=0,RW_measure='RW_PCF_CS')    #RW_PCF  RW_PCF_CS RW_non_fuzzy_conf
-
+  runFRE(X_tr,y_tr,X_tst,y_tst,FI_X,y_nn,topF=3,prunning_ths=0.7,RW_measure='RW_PCF_CS')    #RW_PCF  RW_PCF_CS RW_non_fuzzy_conf
